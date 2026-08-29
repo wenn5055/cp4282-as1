@@ -148,7 +148,7 @@ class CpuRenderer:
     def render(
         self,
         splats: GaussianSet,
-        background: tuple[float, float, float] = (1.0, 1.0, 1.0),
+        background: tuple[float, float, float] = (0.0, 0.0, 0.0),
     ) -> np.ndarray:
         projected = project_gaussians(
             splats,
@@ -166,12 +166,37 @@ class CpuRenderer:
             y = py + 0.5
             for px in range(self.camera.width):
                 x = px + 0.5
-                # TODO: Calculate the RGB value at (x, y)
-                # Composite the sorted splats front to back, then finish with the
-                # background weighted by the remaining transmittance.
+                colour = np.zeros(3, dtype=np.float32)
+                transmittance = 1.0
+
+                for i in range(len(projected.centres)):
+                    cx, cy = projected.centres[i]
+                    du = x - cx
+                    dv = y - cy
+                    a, b, c = projected.conics[i]
+
+                    q = a * du * du + 2.0 * b * du * dv + c * dv * dv
+
+                    if supports[i] == 0.0 or q > supports[i]:
+                        continue
+
+                    alpha = min(0.99, projected.opacities[i] * np.exp(-0.5 * q))
+
+                    if alpha < ALPHA_CUTOFF:
+                        continue
+
+                    colour += transmittance * alpha * projected.colors[i]
+                    transmittance *= 1.0 - alpha
+
+                    if transmittance < 1.0e-4:
+                        break
+
+                colour += transmittance * background_color
+                image[py, px] = colour
+
 
                 # TODO: The RHS is a placeholder
-                image[py, px] = np.zeros(3, dtype=np.float32)
+                # image[py, px] = np.zeros(3, dtype=np.float32)
 
         return image
 
@@ -194,7 +219,10 @@ def main() -> None:
     )
     splats = GaussianSet.from_ply(args.ply)
     image = CpuRenderer(camera).render(splats)
-    Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255.0)).save(args.output)
+
+    image_u8 = (np.clip(image, 0.0, 1.0) * 255.0).astype(np.uint8)
+    Image.fromarray(image_u8).save(args.output)
+    # Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255.0)).save(args.output)
 
 
 if __name__ == "__main__":

@@ -103,8 +103,10 @@ def main() -> None:
     splats = GaussianSet.from_ply(args.ply)
     renderer = WarpRenderer(args.width, args.height, len(splats.means), args.device)
     image = renderer.render(splats, camera)
-    Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255.0)).save(args.output)
-
+    # Image.fromarray(np.uint8(np.clip(image, 0.0, 1.0) * 255.0)).save(args.output)
+    
+    image_u8 = (np.clip(image, 0.0, 1.0) * 255.0).astype(np.uint8)
+    Image.fromarray(image_u8).save(args.output)
 
 if __name__ == "__main__":
     main()
