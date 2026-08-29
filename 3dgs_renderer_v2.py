@@ -42,7 +42,7 @@ def rasterize(
     px = float(pixel % width) + 0.5
     py = float(pixel // width) + 0.5
     colour = wp.vec3(0.0, 0.0, 0.0)
-    transmittance = 1.0
+    transmittance = float(1.0)
 
     for splat in range(count):
         centre = centres[splat]
