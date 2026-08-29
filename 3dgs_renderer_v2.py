@@ -41,13 +41,30 @@ def rasterize(
     pixel = wp.tid()
     px = float(pixel % width) + 0.5
     py = float(pixel // width) + 0.5
-    # TODO: Calculate the RGB at pixel (px, py)
-    # One work item per pixel: walk the globally depth-sorted splats, accumulate
-    # front to back, and composite the background with the leftover transmittance.
-    # This must reproduce 3dgs_renderer_v1 exactly.
+    colour = wp.vec3(0.0, 0.0, 0.0)
+    transmittance = 1.0
 
-    # TODO: The RHS is a placeholder
-    image[pixel] = wp.vec3(0.0, 0.0, 0.0)
+    for splat in range(count):
+        centre = centres[splat]
+        conic = conics[splat]
+        du = px - centre[0]
+        dv = py - centre[1]
+        q = conic[0] * du * du + 2.0 * conic[1] * du * dv + conic[2] * dv * dv
+
+        if q > supports[splat]:
+            continue
+
+        alpha = wp.min(0.99, opacities[splat] * wp.exp(-0.5 * q))
+        if alpha < ALPHA_CUTOFF:
+            continue
+
+        colour += transmittance * alpha * colours[splat]
+        transmittance *= 1.0 - alpha
+
+        if transmittance < TRANSMITTANCE_CUTOFF:
+            break
+
+    image[pixel] = colour + transmittance * background
 
 
 class WarpRenderer:
