@@ -65,7 +65,7 @@ def rasterize_tiles(
     px = float(px_i) + 0.5
     py = float(py_i) + 0.5
     colour = wp.vec3(0.0, 0.0, 0.0)
-    transmittance = 1.0
+    transmittance = float(1.0)
 
 
     # TODO: Compute the RGB value at image[pixel].
