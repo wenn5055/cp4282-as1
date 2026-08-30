@@ -64,13 +64,41 @@ def rasterize_tiles(
 
     px = float(px_i) + 0.5
     py = float(py_i) + 0.5
+    colour = wp.vec3(0.0, 0.0, 0.0)
+    transmittance = 1.0
+
+
     # TODO: Compute the RGB value at image[pixel].
     # Composite only this pixel's tile list, `tile_offsets[tile] .. tile_offsets[tile + 1]`,
     # which the builder has already sorted near to far. Finish with the background
     # weighted by the remaining transmittance, matching 3dgs_renderer_v1.
 
-    # TODO: The RHS is a placeholder
-    image[pixel] = wp.vec3(0.0, 0.0, 0.0)
+    start = tile_offsets[tile]
+    end = tile_offsets[tile + 1]
+    for record_index in range(start, end):
+        packed = packed_pairs[record_index]
+        splat = int(packed & wp.uint64(0xFFFFFFFF)) # bitwise AND to get the lower 32 bits, which is the splat index
+
+        centre = centres[splat]
+        conic = conics[splat]
+        du = px - centre[0]
+        dv = py - centre[1]
+        q = conic[0] * du * du + 2.0 * conic[1] * du * dv + conic[2] * dv * dv
+
+        if q > supports[splat]:
+            continue
+
+        alpha = wp.min(0.99, opacities[splat] * wp.exp(-0.5 * q))
+        if alpha < ALPHA_CUTOFF:
+            continue
+
+        colour += transmittance * alpha * colours[splat]
+        transmittance *= 1.0 - alpha
+
+        if transmittance < TRANSMITTANCE_CUTOFF:
+            break
+
+    image[pixel] = colour + transmittance * background
 
 
 class GaussianFirstWarpRenderer:
