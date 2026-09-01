@@ -148,7 +148,7 @@ class CpuRenderer:
     def render(
         self,
         splats: GaussianSet,
-        background: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        background: tuple[float, float, float] = (1.0, 1.0, 1.0),
     ) -> np.ndarray:
         projected = project_gaussians(
             splats,
