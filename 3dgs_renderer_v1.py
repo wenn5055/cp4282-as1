@@ -194,10 +194,6 @@ class CpuRenderer:
                 colour += transmittance * background_color
                 image[py, px] = colour
 
-
-                # TODO: The RHS is a placeholder
-                # image[py, px] = np.zeros(3, dtype=np.float32)
-
         return image
 
 
